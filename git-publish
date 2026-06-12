@@ -53,6 +53,36 @@ log_error() {
     error "$*"
 }
 
+open_log() {
+
+    if [[ ! -f "$LOGFILE" ]]; then
+        warn "Nessun file di log trovato."
+        exit 0
+    fi
+
+    if command -v fzf >/dev/null 2>&1; then
+        fzf < "$LOGFILE"
+
+    elif command -v bat >/dev/null 2>&1; then
+        bat --paging=always "$LOGFILE"
+
+    elif command -v less >/dev/null 2>&1; then
+        less "$LOGFILE"
+
+    else
+        cat "$LOGFILE"
+    fi
+}
+
+case "${1:-}" in
+
+    logs)
+        open_log
+        exit 0
+        ;;
+
+esac
+
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     log_error "Questa directory non appartiene a una repository Git."
     exit 1
