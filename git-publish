@@ -124,6 +124,17 @@ echo
 echo "File modificati:"
 git diff --cached --name-status
 
+timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+echo
+read -rp "Messaggio di commit: " commit_title
+
+if [[ -z "$commit_title" ]]; then
+    commit_title="[SERVER] Edit by $user on $host - $timestamp"
+fi
+
+log_raw "INFO" "Messaggio di commit: $commit_title"
+
 echo
 read -rp "Descrizione modifica (opzionale): " description
 
@@ -142,10 +153,6 @@ case "$confirm" in
         exit 0
         ;;
 esac
-
-timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-
-commit_title="[SERVER] Edit by $user on $host - $timestamp"
 
 echo
 log_info "Creazione commit..."
@@ -178,9 +185,9 @@ while read -r remote; do
     info "Push verso $remote..."
 
     if git push "$remote" "$branch"; then
-        log_success "Push completato su $remote"
+        log_success "Push completato su $remote $branch"
     else
-        log_error "Push fallito su $remote"
+        log_error "Push fallito su $remote $branch"
         ((failed_pushes++))
     fi
 
