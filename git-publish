@@ -10,6 +10,35 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+colorize_log() {
+    awk '
+    /\[OK\]/ {
+        print "\033[32m" $0 "\033[0m"
+        next
+    }
+
+    /\[ERROR\]/ {
+        print "\033[31m" $0 "\033[0m"
+        next
+    }
+
+    /\[WARN\]/ {
+        print "\033[33m" $0 "\033[0m"
+        next
+    }
+
+    /\[INFO\]/ {
+        print "\033[36m" $0 "\033[0m"
+        next
+    }
+
+    {
+        print
+    }
+    ' "$LOGFILE" | sed -E \
+    's/(Utente: )([[:alnum:]_.-]+)/\1\x1b[35m\2\x1b[0m/g'
+}
+
 log_raw() {
     local level="$1"
     local msg="$2"
@@ -53,7 +82,7 @@ log_error() {
     error "$*"
 }
 
-open_log() {
+show_log() {
 
     if [[ ! -f "$LOGFILE" ]]; then
         warn "Nessun file di log trovato."
@@ -61,23 +90,28 @@ open_log() {
     fi
 
     if command -v fzf >/dev/null 2>&1; then
-        fzf < "$LOGFILE"
+
+        colorize_log | fzf --ansi
 
     elif command -v bat >/dev/null 2>&1; then
-        bat --paging=always "$LOGFILE"
+
+        colorize_log | bat --paging=always --language=log
 
     elif command -v less >/dev/null 2>&1; then
-        less "$LOGFILE"
+
+        colorize_log | less -R
 
     else
-        cat "$LOGFILE"
+
+        colorize_log
+
     fi
 }
 
 case "${1:-}" in
 
     logs)
-        open_log
+        show_log
         exit 0
         ;;
 
