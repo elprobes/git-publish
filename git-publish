@@ -91,7 +91,7 @@ show_log() {
 
     if command -v fzf >/dev/null 2>&1; then
 
-        colorize_log | fzf --ansi
+        colorize_log | fzf --ansi --tac
 
     elif command -v bat >/dev/null 2>&1; then
 
