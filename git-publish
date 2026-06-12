@@ -152,6 +152,8 @@ echo "󰋼 Utente     : $user"
 echo "󰞇 Host       : $host"
 echo "------------------------------------"
 
+log_raw "----" "----------"
+log_raw "INFO" "Starting..."
 log_raw "INFO" "Repository: $repo_name"
 log_raw "INFO" "Branch: $branch"
 log_raw "INFO" "Utente: $user"
