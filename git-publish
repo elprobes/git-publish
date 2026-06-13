@@ -11,6 +11,16 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+session_closed=0
+
+cleanup() {
+    echo
+    log_warn "Operazione interrotta."
+    end_session
+    exit 130
+}
+trap cleanup INT TERM
+
 colorize_log() {
     awk '
     /^▶ / {
@@ -177,7 +187,10 @@ log_error() {
 }
 
 end_session() {
-    log_raw "SESSION" "END   --------------------------------------"
+    if (( session_closed == 0 )); then
+        log_raw "SESSION" "END   ------------------------------------"
+        session_closed=1
+    fi
 }
 
 show_log() {
