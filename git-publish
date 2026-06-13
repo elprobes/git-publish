@@ -3,6 +3,7 @@
 set -uo pipefail
 
 LOGFILE="$HOME/.local/state/git-publish.log"
+mkdir -p "$(dirname "$LOGFILE")"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -27,16 +28,23 @@ colorize_log() {
         next
     }
 
+    /\[SESSION\]/ {
+        print "\033[34m" $0 "\033[0m"
+        next
+    }
+
     /\[INFO\]/ {
-        print "\033[36m" $0 "\033[0m"
+        print $0
         next
     }
 
     {
         print
     }
-    ' "$LOGFILE" | sed -E \
-    's/(Utente: )([[:alnum:]_.-]+)/\1\x1b[35m\2\x1b[0m/g'
+    ' "$LOGFILE" | sed -E '
+        s/(Utente: )([[:alnum:]_.-]+)/\1\x1b[36m\2\x1b[0m/g;
+        s/(Branch: )([[:alnum:]_.\/-]+)/\1\x1b[36m\2\x1b[0m/g
+    '
 }
 
 log_raw() {
@@ -122,12 +130,12 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     exit 1
 fi
 
-if [[ -z "$(git config user.name)" ]]; then
+if [[ -z "$(git config --get user.name)" ]]; then
     log_error "git user.name non configurato"
     exit 1
 fi
 
-if [[ -z "$(git config user.email)" ]]; then
+if [[ -z "$(git config --get user.email)" ]]; then
     log_error "git user.email non configurato"
     exit 1
 fi
@@ -140,7 +148,7 @@ if [[ -z "$branch" ]]; then
 fi
 
 user=$(whoami)
-host=$(hostnamectl --static)
+host=$(hostnamectl --static 2>/dev/null || uname -n)
 
 echo
 echo "󰊢 Git Publish"
@@ -153,7 +161,7 @@ echo "󰞇 Host       : $host"
 echo "------------------------------------"
 
 log_raw "" "----------"
-log_raw "INFO" "Starting..."
+log_raw "SESSION" "START   ------------------------------------"
 log_raw "INFO" "Repository: $repo_name"
 log_raw "INFO" "Branch: $branch"
 log_raw "INFO" "Utente: $user"
@@ -166,6 +174,7 @@ remotes=$(git remote)
 
 if [[ -z "$remotes" ]]; then
     warn "Nessun remote configurato."
+    log_raw "SESSION" "END   ------------------------------------"
     exit 1
 fi
 
@@ -181,6 +190,7 @@ git add -A
 
 if git diff --cached --quiet; then
     log_info "Nessuna modifica rilevata."
+    log_raw "SESSION" "END   ------------------------------------"
     exit 0
 fi
 
@@ -216,6 +226,7 @@ case "$confirm" in
         ;;
     *)
         log_warn "Operazione annullata."
+        log_raw "SESSION" "END   ------------------------------------"
         exit 0
         ;;
 esac
@@ -231,6 +242,7 @@ fi
 
 if [[ $? -ne 0 ]]; then
     log_error "Errore durante la creazione del commit."
+    log_raw "SESSION" "END   ------------------------------------"
     exit 1
 fi
 
@@ -267,11 +279,13 @@ if (( failed_pushes == 0 )); then
     echo "Commit: $commit_hash"
     log_raw "OK" \
     "Operazione completata con successo. Commit: $commit_hash"
+    log_raw "SESSION" "END   ------------------------------------"
     exit 0
 else
     error "Operazione completata con errori."
     echo "Commit: $commit_hash"
     echo "Remote falliti: $failed_pushes"
     log_error "Operazione completata con errori. Commit: $commit_hash. Remote falliti: $failed_pushes"
+    log_raw "SESSION" "END   ------------------------------------"
     exit 1
 fi
