@@ -1,52 +1,60 @@
+# Git Publish
 
-# git-publish
+Git Publish è un piccolo strumento Bash pensato per semplificare la pubblicazione di modifiche effettuate direttamente su un server.
 
-`git-publish` è un semplice script Bash pensato per facilitare il salvataggio e la pubblicazione di modifiche effettuate direttamente su un server all'interno di una repository Git.
-
-Nasce per ambienti in cui il codice viene normalmente aggiornato tramite `git pull`, ma dove occasionalmente collaboratori o tecnici possono avere la necessità di modificare alcuni file direttamente sul server.
-
-Lo scopo dello script è evitare che tali modifiche vengano dimenticate o sovrascritte in seguito, automatizzando le operazioni Git più comuni.
+L'obiettivo è permettere anche a collaboratori con poca esperienza di Git di salvare e pubblicare correttamente le modifiche apportate al codice, riducendo il rischio di perdere lavoro o sovrascrivere cambiamenti effettuati sul server.
 
 ---
 
-## Funzionalità
+## Caratteristiche
 
-* Verifica di trovarsi all'interno di una repository Git.
-* Visualizzazione delle informazioni principali della repository.
-* Elenco dei remote configurati.
-* Rilevamento automatico delle modifiche locali.
-* Richiesta opzionale di una descrizione dell'intervento effettuato.
-* Conferma prima della pubblicazione.
-* Commit automatico con informazioni su utente, host e timestamp.
-* Push verso tutti i remote configurati.
-* Logging persistente delle operazioni.
-* Output colorato con supporto a Nerd Fonts.
-
----
-
-## Workflow
-
-Quando viene eseguito, lo script:
-
-1. Verifica che la directory corrente sia una repository Git.
-2. Mostra repository, branch, utente e host.
-3. Elenca i remote configurati.
-4. Esegue `git add -A`.
-5. Verifica la presenza di modifiche da committare.
-6. Richiede una descrizione opzionale dell'intervento.
-7. Chiede conferma all'utente.
-8. Crea un commit automatico.
-9. Esegue il push verso tutti i remote.
-10. Registra il risultato nel file di log.
+* Verifica che la directory corrente sia una repository Git valida
+* Verifica la configurazione Git dell'utente (`user.name` e `user.email`)
+* Mostra informazioni sulla repository corrente
+* Elenca automaticamente i remote configurati
+* Aggiunge automaticamente tutte le modifiche (`git add -A`)
+* Mostra i file che verranno inclusi nel commit
+* Consente di specificare un messaggio di commit personalizzato
+* Consente di aggiungere una descrizione opzionale
+* Richiede conferma prima di procedere
+* Effettua il commit delle modifiche
+* Esegue il push verso tutti i remote configurati
+* Mantiene un log persistente delle operazioni
+* Consultazione avanzata del log tramite `fzf` (se installato)
 
 ---
 
-## Esempio di utilizzo
+## Installazione
 
-Entrare nella directory della repository:
+Rendere eseguibile lo script:
 
 ```bash
-cd /var/www/my-project
+chmod +x git-publish
+```
+
+Installarlo in una directory presente nel `PATH`, ad esempio:
+
+```bash
+sudo cp git-publish /usr/local/bin/
+```
+
+oppure:
+
+```bash
+mkdir -p ~/.local/bin
+cp git-publish ~/.local/bin/
+```
+
+Assicurarsi che `~/.local/bin` sia presente nel proprio `PATH`.
+
+---
+
+## Utilizzo
+
+Posizionarsi all'interno di una repository Git:
+
+```bash
+cd /percorso/della/repository
 ```
 
 Eseguire:
@@ -55,26 +63,31 @@ Eseguire:
 git-publish
 ```
 
-Lo script mostrerà un riepilogo delle informazioni rilevate e guiderà l'utente durante la pubblicazione.
+---
+
+## Flusso operativo
+
+Git Publish esegue automaticamente i seguenti passaggi:
+
+1. Verifica della repository Git
+2. Verifica della configurazione Git dell'utente
+3. Analisi delle modifiche presenti
+4. Visualizzazione dei file modificati
+5. Richiesta del messaggio di commit
+6. Richiesta della descrizione opzionale
+7. Conferma dell'operazione
+8. Creazione del commit
+9. Push verso tutti i remote configurati
+10. Registrazione dell'intera operazione nel log
 
 ---
 
-## Formato dei commit
+## Messaggio di commit
 
-I commit vengono creati automaticamente con un messaggio simile al seguente:
-
-```text
-[SERVER] Edit by mario on server-prod - 2026-06-12 23:37:10
-```
-
-Se viene fornita una descrizione, questa verrà aggiunta come corpo del commit.
-
-Esempio:
+Se non viene specificato alcun messaggio, Git Publish genera automaticamente un titolo simile al seguente:
 
 ```text
-[SERVER] Edit by mario on server-prod - 2026-06-12 23:37:10
-
-Corretto il calcolo dell'IVA sulle fatture estere.
+[SERVER] Edit by mario on server-prod - 2026-06-14 09:15:42
 ```
 
 ---
@@ -84,48 +97,120 @@ Corretto il calcolo dell'IVA sulle fatture estere.
 Tutte le operazioni vengono registrate nel file:
 
 ```text
-~/.server-save.log
+~/.local/state/git-publish.log
 ```
 
-Esempio:
+Ogni esecuzione viene salvata come una sessione separata:
 
 ```text
-[2026-06-12 23:37:10] [INFO] Repository: proxima
-[2026-06-12 23:37:10] [INFO] Utente: mario
-[2026-06-12 23:37:11] [OK] Commit creato: 2a69b96
-[2026-06-12 23:37:12] [OK] Push completato su origin
+[SESSION] START ------------------------------------
+...
+[SESSION] END   ------------------------------------
+```
+
+Questo rende il log facilmente leggibile sia da strumenti automatici sia da esseri umani.
+
+---
+
+## Consultazione del log
+
+Per visualizzare il log:
+
+```bash
+git-publish logs
+```
+
+### Priorità dei visualizzatori
+
+Git Publish utilizza automaticamente il miglior visualizzatore disponibile:
+
+1. `fzf`
+2. `bat`
+3. `less`
+4. `cat`
+
+---
+
+## Ricerca nel log con fzf
+
+Se `fzf` è installato:
+
+```bash
+git-publish logs
+```
+
+aprirà una vista interattiva con:
+
+* Ricerca fuzzy
+* Filtri avanzati
+* Preview della sessione completa
+* Evidenziazione della riga selezionata
+* Colorazione dei livelli di log
+
+### Esempi
+
+Mostrare solo errori:
+
+```text
+ERROR
+```
+
+Escludere le righe informative:
+
+```text
+!INFO
+```
+
+Cercare operazioni relative a un utente:
+
+```text
+brotech
+```
+
+Cercare commit o push:
+
+```text
+commit | push
 ```
 
 ---
 
-## Caso d'uso tipico
+## Livelli di log
 
-Un collaboratore modifica alcuni file direttamente sul server.
-
-Una volta terminato il lavoro, è sufficiente eseguire:
-
-```bash
-git-publish
-```
-
-Lo script provvederà a:
-
-* salvare le modifiche nella repository Git;
-* creare un commit tracciabile;
-* pubblicare le modifiche sui remote configurati;
-* registrare l'operazione nel log.
-
-In questo modo le modifiche non rischiano di essere dimenticate o sovrascritte durante successivi aggiornamenti del repository.
+| Livello | Significato                        |
+| ------- | ---------------------------------- |
+| SESSION | Inizio/Fine esecuzione             |
+| INFO    | Informazioni generali              |
+| OK      | Operazione completata con successo |
+| WARN    | Avvisi                             |
+| ERROR   | Errori                             |
 
 ---
 
 ## Requisiti
 
+### Obbligatori
+
 * Bash
 * Git
-* Accesso in scrittura ai remote Git configurati
-* Terminale compatibile ANSI (consigliato)
-* Nerd Fonts (opzionale, per la visualizzazione delle icone)
+
+### Opzionali
+
+* fzf
+* bat
+* less
+
+L'assenza dei componenti opzionali non impedisce il funzionamento dello script.
+
+---
+
+## Filosofia
+
+Git Publish non sostituisce Git.
+
+Git Publish automatizza una serie di operazioni comuni e ripetitive per ridurre gli errori umani durante modifiche effettuate direttamente su un server.
+
+L'obiettivo è rendere semplice e sicuro il salvataggio delle modifiche senza richiedere una conoscenza approfondita di Git da parte degli utenti finali.
 
 ---
 
