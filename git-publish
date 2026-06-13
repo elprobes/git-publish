@@ -90,6 +90,10 @@ log_error() {
     error "$*"
 }
 
+end_session() {
+    log_raw "SESSION" "END   ---------------------------------------"
+}
+
 show_log() {
 
     if [[ ! -f "$LOGFILE" ]]; then
@@ -173,7 +177,8 @@ remotes=$(git remote)
 
 if [[ -z "$remotes" ]]; then
     warn "Nessun remote configurato."
-    log_raw "SESSION" "END   ------------------------------------"
+    end_session
+
     exit 1
 fi
 
@@ -189,7 +194,7 @@ git add -A
 
 if git diff --cached --quiet; then
     log_info "Nessuna modifica rilevata."
-    log_raw "SESSION" "END   ------------------------------------"
+    end_session
     exit 0
 fi
 
@@ -225,7 +230,8 @@ case "$confirm" in
         ;;
     *)
         log_warn "Operazione annullata."
-        log_raw "SESSION" "END   ------------------------------------"
+        end_session
+
         exit 0
         ;;
 esac
@@ -241,7 +247,8 @@ fi
 
 if [[ $? -ne 0 ]]; then
     log_error "Errore durante la creazione del commit."
-    log_raw "SESSION" "END   ------------------------------------"
+    end_session
+
     exit 1
 fi
 
@@ -278,13 +285,13 @@ if (( failed_pushes == 0 )); then
     echo "Commit: $commit_hash"
     log_raw "OK" \
     "Operazione completata con successo. Commit: $commit_hash"
-    log_raw "SESSION" "END   ------------------------------------"
+    end_session
     exit 0
 else
     error "Operazione completata con errori."
     echo "Commit: $commit_hash"
     echo "Remote falliti: $failed_pushes"
     log_error "Operazione completata con errori. Commit: $commit_hash. Remote falliti: $failed_pushes"
-    log_raw "SESSION" "END   ------------------------------------"
+    end_session
     exit 1
 fi
