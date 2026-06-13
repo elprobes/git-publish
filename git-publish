@@ -13,6 +13,11 @@ NC='\033[0m'
 
 colorize_log() {
     awk '
+    /^▶ / {
+        print "\033[1;35m" $0 "\033[0m"
+        next
+    }
+
     /\[OK\]/ {
         print "\033[32m" $0 "\033[0m"
         next
@@ -46,6 +51,87 @@ colorize_log() {
         s/(Branch: )([[:alnum:]_.\/-]+)/\1\x1b[36m\2\x1b[0m/g
     '
 }
+
+colorize_stream() {
+    awk '
+    /^▶ / {
+        print "\033[1;35m" $0 "\033[0m"
+        next
+    }
+
+    /\[OK\]/ {
+        print "\033[32m" $0 "\033[0m"
+        next
+    }
+
+    /\[ERROR\]/ {
+        print "\033[31m" $0 "\033[0m"
+        next
+    }
+
+    /\[WARN\]/ {
+        print "\033[33m" $0 "\033[0m"
+        next
+    }
+
+    /\[SESSION\]/ {
+        print "\033[34m" $0 "\033[0m"
+        next
+    }
+
+    {
+        print
+    }
+    ' | sed -E '
+        s/(Utente: )([[:alnum:]_.-]+)/\1\x1b[36m\2\x1b[0m/g;
+        s/(Branch: )([[:alnum:]_.\/-]+)/\1\x1b[36m\2\x1b[0m/g
+    '
+}
+
+export -f colorize_stream
+
+show_session() {
+    local target="$1"
+
+    awk -v target="$target" '
+    {
+        lines[NR] = $0
+    }
+
+    END {
+
+        target += 0
+
+        start = 1
+        end = NR
+
+        for (i = target; i >= 1; i--) {
+            if (lines[i] ~ /\[SESSION\] START/) {
+                start = i
+                break
+            }
+        }
+
+        for (i = target + 1; i <= NR; i++) {
+            if (lines[i] ~ /\[SESSION\] END/) {
+                end = i
+                break
+            }
+        }
+
+        for (i = start; i <= end; i++) {
+            if (i == target) {
+                print "▶ " lines[i]
+            } else {
+                print "  " lines[i]
+            }
+        }
+    }
+    ' "$LOGFILE"
+}
+
+export -f show_session
+export LOGFILE
 
 log_raw() {
     local level="$1"
@@ -91,7 +177,7 @@ log_error() {
 }
 
 end_session() {
-    log_raw "SESSION" "END   ---------------------------------------"
+    log_raw "SESSION" "END   --------------------------------------"
 }
 
 show_log() {
@@ -103,7 +189,18 @@ show_log() {
 
     if command -v fzf >/dev/null 2>&1; then
 
-        colorize_log | fzf --ansi --tac
+    colorize_log | \
+    nl -ba -w1 -s$'\t' | \
+    fzf \
+        --ansi \
+        --tac \
+        --delimiter=$'\t' \
+        --with-nth=2.. \
+        --preview '
+line=$(echo {} | awk "{print \$1}")
+show_session "$line" | colorize_stream
+' \
+        --preview-window=up:35%:wrap
 
     elif command -v bat >/dev/null 2>&1; then
 
